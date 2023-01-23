@@ -36,7 +36,7 @@ const account4 = {
 const accounts = [account1, account2, account3, account4];
 
 // Elements
-// const labelWelcome = document.querySelector('.welcome');
+const labelWelcome = document.querySelector('.welcome');
 // const labelDate = document.querySelector('.date');
 const labelBalance = document.querySelector('.balance__value');
 const labelSumIn = document.querySelector('.summary__value--in');
@@ -44,19 +44,19 @@ const labelSumOut = document.querySelector('.summary__value--out');
 const labelSumInterest = document.querySelector('.summary__value--interest');
 // const labelTimer = document.querySelector('.timer');
 
-// const containerApp = document.querySelector('.app');
+const containerApp = document.querySelector('.app');
 const containerMovements = document.querySelector('.movements');
 
-// const btnLogin = document.querySelector('.login__btn');
-// const btnTransfer = document.querySelector('.form__btn--transfer');
+const btnLogin = document.querySelector('.login__btn');
+const btnTransfer = document.querySelector('.form__btn--transfer');
 // const btnLoan = document.querySelector('.form__btn--loan');
 // const btnClose = document.querySelector('.form__btn--close');
 // const btnSort = document.querySelector('.btn--sort');
 
-// const inputLoginUsername = document.querySelector('.login__input--user');
-// const inputLoginPin = document.querySelector('.login__input--pin');
-// const inputTransferTo = document.querySelector('.form__input--to');
-// const inputTransferAmount = document.querySelector('.form__input--amount');
+const inputLoginUsername = document.querySelector('.login__input--user');
+const inputLoginPin = document.querySelector('.login__input--pin');
+const inputTransferTo = document.querySelector('.form__input--to');
+const inputTransferAmount = document.querySelector('.form__input--amount');
 // const inputLoanAmount = document.querySelector('.form__input--loan-amount');
 // const inputCloseUsername = document.querySelector('.form__input--user');
 // const inputClosePin = document.querySelector('.form__input--pin');
@@ -84,50 +84,47 @@ const displayMovements = (movements) => {
       containerMovements.insertAdjacentHTML('afterbegin', html);
    });
 };
-displayMovements(account1.movements);
 
 /**
  * Display current balance to the dashboard.
  */
-const calcDisplayBalance = (movements) => {
-   const balance = movements.reduce(
+const calcDisplayBalance = (acc) => {
+   acc.balance = acc.movements.reduce(
       (accumulator, currentValue) => accumulator + currentValue,
       0
    );
 
-   labelBalance.textContent = `${balance}€`;
+   labelBalance.textContent = `${acc.balance}€`;
 };
-calcDisplayBalance(account1.movements);
 
 /**
- * Display total credit, debit and interest amount summary
+ * Display total deposits, withdrawals and interest amount summary
  */
-const calcDisplaySummary = (movements) => {
-   // Display incomes summary
-   const totalCreditAmount = movements
+const calcDisplaySummary = (acc) => {
+   // Display deposits summary
+   const totaldepositAmount = acc.movements
       .filter((mov) => mov > 0)
       .reduce((acc, mov) => acc + mov, 0);
-   labelSumIn.textContent = `${totalCreditAmount}€`;
+   labelSumIn.textContent = `${totaldepositAmount}€`;
 
-   // Display outcomes summary
-   const totalDebitAmount = movements
+   // Display withdrawals summary
+   const totalWithdrawalAmount = acc.movements
       .filter((mov) => mov < 0)
       .reduce((acc, mov) => acc + mov, 0);
-   labelSumOut.textContent = `${Math.abs(totalDebitAmount)}€`;
+   labelSumOut.textContent = `${Math.abs(totalWithdrawalAmount)}€`;
 
    // Display total interest amount
-   const interest = movements
+   const interest = acc.movements
       // filter out only deposit amount
       .filter((mov) => mov > 0)
       // calculate the interest for each deposit amount
-      .map((deposit) => (deposit * 1.2) / 100)
+      .map((deposit) => (deposit * acc.interestRate) / 100)
       // bank's rule: interest amount should be greater than one to calculate in the total interest amount
       .filter((interestAmount) => interestAmount >= 1)
       // calc total interest amount
       .reduce((acc, interestAmount) => acc + interestAmount, 0);
    labelSumInterest.textContent = `${interest}€`;
 };
-calcDisplaySummary(account1.movements);
 
 /**
  * Create username using account's owner's name
@@ -143,6 +140,81 @@ const createUserNames = (accs) => {
    });
 };
 createUserNames(accounts);
+
+/**
+ * Update UI
+ */
+const updateUI = (curAcc) => {
+   // Display movements
+   displayMovements(curAcc.movements);
+
+   // Display balance
+   calcDisplayBalance(curAcc);
+
+   // Display summary
+   calcDisplaySummary(curAcc);
+};
+
+/**
+ * Implementing Login
+ */
+let currentAccount;
+
+btnLogin.addEventListener('click', (e) => {
+   // Prevent login form from submitting
+   e.preventDefault();
+
+   currentAccount = accounts.find(
+      (acc) => acc.username === inputLoginUsername.value
+   );
+
+   if (currentAccount?.pin === Number(inputLoginPin.value)) {
+      // Display UI and welcome message
+      labelWelcome.textContent = `Welcome back, ${
+         currentAccount.owner.split(' ')[0]
+      }`;
+      containerApp.style.opacity = 1;
+
+      // Clear input fields
+      inputLoginUsername.value = inputLoginPin.value = '';
+      inputLoginPin.blur(); // "blur" method removes focus from an element.
+      inputLoginUsername.blur();
+
+      // Update UI
+      updateUI(currentAccount);
+   }
+});
+
+/**
+ * User Transfer Money
+ */
+btnTransfer.addEventListener('click', (e) => {
+   e.preventDefault();
+
+   const amount = Number(inputTransferAmount.value);
+   const receiverAccount = accounts.find(
+      (acc) => acc.username === inputTransferTo.value
+   );
+
+   if (
+      amount > 0 &&
+      receiverAccount &&
+      currentAccount.balance >= amount &&
+      receiverAccount?.username !== currentAccount.username
+   ) {
+      // Doing the transfer
+      currentAccount.movements.push(-amount);
+      receiverAccount.movements.push(amount);
+
+      // Update UI
+      updateUI(currentAccount);
+
+      // Clear input fields
+      inputTransferAmount.value = inputTransferTo.value = '';
+      inputTransferAmount.blur(); // "blur" method removes focus from an element.
+      inputTransferTo.blur();
+   }
+});
 
 /////////////////////////////////////////////////
 /////////////////////////////////////////////////
