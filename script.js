@@ -49,17 +49,17 @@ const containerMovements = document.querySelector('.movements');
 
 const btnLogin = document.querySelector('.login__btn');
 const btnTransfer = document.querySelector('.form__btn--transfer');
-// const btnLoan = document.querySelector('.form__btn--loan');
-// const btnClose = document.querySelector('.form__btn--close');
+const btnLoan = document.querySelector('.form__btn--loan');
+const btnClose = document.querySelector('.form__btn--close');
 // const btnSort = document.querySelector('.btn--sort');
 
 const inputLoginUsername = document.querySelector('.login__input--user');
 const inputLoginPin = document.querySelector('.login__input--pin');
 const inputTransferTo = document.querySelector('.form__input--to');
 const inputTransferAmount = document.querySelector('.form__input--amount');
-// const inputLoanAmount = document.querySelector('.form__input--loan-amount');
-// const inputCloseUsername = document.querySelector('.form__input--user');
-// const inputClosePin = document.querySelector('.form__input--pin');
+const inputLoanAmount = document.querySelector('.form__input--loan-amount');
+const inputCloseUsername = document.querySelector('.form__input--user');
+const inputClosePin = document.querySelector('.form__input--pin');
 
 /**
  * Display deposit and withdrawal amount to the dashboard.
@@ -182,6 +182,8 @@ btnLogin.addEventListener('click', (e) => {
 
       // Update UI
       updateUI(currentAccount);
+   } else {
+      alert('Wrong username and password entered. Please check again!');
    }
 });
 
@@ -213,6 +215,66 @@ btnTransfer.addEventListener('click', (e) => {
       inputTransferAmount.value = inputTransferTo.value = '';
       inputTransferAmount.blur(); // "blur" method removes focus from an element.
       inputTransferTo.blur();
+   } else {
+      alert('Incorrect! Please check entered detaild again.');
+   }
+});
+
+/**
+ * User Requests Loan
+ */
+btnLoan.addEventListener('click', (e) => {
+   e.preventDefault();
+
+   const amount = Number(inputLoanAmount.value);
+
+   // Any deposit > 10% of requested amount
+   if (
+      amount > 0 &&
+      currentAccount.movements.some((mov) => mov >= amount * 0.1)
+   ) {
+      // Add positive movement to current user
+      currentAccount.movements.push(amount);
+
+      // Update UI
+      updateUI(currentAccount);
+
+      // Clear input fields
+      inputLoanAmount.value = '';
+      inputLoanAmount.blur(); // "blur" method removes focus from an element.
+   } else {
+      alert(
+         `${
+            currentAccount.owner.split(' ')[0]
+         }, requested amount ${amount} is high. Please check!`
+      );
+   }
+});
+
+/**
+ * Close Account
+ */
+btnClose.addEventListener('click', (e) => {
+   e.preventDefault();
+
+   // Check correct credentials
+   if (
+      inputCloseUsername.value === currentAccount.username &&
+      Number(inputClosePin.value) === currentAccount.pin
+   ) {
+      // Find index of the current account
+      const index = accounts.findIndex(
+         (acc) => acc.username === currentAccount.username
+      );
+
+      // Delete account
+      console.log(accounts.splice(index, 1));
+
+      // Log out user (Hide UI)
+      containerApp.style.opacity = 0;
+
+      // Update welcome message
+      labelWelcome.textContent = 'Log in to get started';
    }
 });
 
@@ -229,3 +291,5 @@ const currencies = new Map([
 const movements = [200, 450, -400, 3000, -650, -130, 70, 1300];
 
 /////////////////////////////////////////////////
+
+console.log(movements.sort());
