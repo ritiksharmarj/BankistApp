@@ -2,8 +2,9 @@
 
 /////////////////////////////////////////////////
 /////////////////////////////////////////////////
-// BANKIST APP
+// IOTA BANK APP
 
+/////////////////////////////////////////////////
 // Data
 const account1 = {
    owner: 'Ritik Sharma',
@@ -73,9 +74,6 @@ const account4 = {
       '2019-12-25T06:04:23.907Z',
       '2020-01-25T14:18:46.235Z',
       '2020-02-05T16:33:06.386Z',
-      '2020-04-10T14:43:26.374Z',
-      '2020-06-25T18:49:59.371Z',
-      '2020-07-26T12:01:20.894Z',
    ],
    currency: 'USD',
    locale: 'en-US',
@@ -83,9 +81,10 @@ const account4 = {
 
 const accounts = [account1, account2, account3, account4];
 
+/////////////////////////////////////////////////
 // Elements
 const labelWelcome = document.querySelector('.welcome');
-// const labelDate = document.querySelector('.date');
+const labelDate = document.querySelector('.date');
 const labelBalance = document.querySelector('.balance__value');
 const labelSumIn = document.querySelector('.summary__value--in');
 const labelSumOut = document.querySelector('.summary__value--out');
@@ -109,28 +108,42 @@ const inputLoanAmount = document.querySelector('.form__input--loan-amount');
 const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
 
+/////////////////////////////////////////////////
+// Global Variables
+let currentAccount;
+let sorted = false;
+
 /**
  * Display deposit and withdrawal amount to the dashboard.
+ * Display movements date.
  */
-const displayMovements = (movements, sort = false) => {
+const displayMovements = (acc, sort = false) => {
    // "innerHTML" property replace HTML code with the new one.
    containerMovements.innerHTML = '';
 
+   // FIXME : sort not working
    // Movements sorting conditions
    const sortMovements = sort
-      ? movements.slice().sort((a, b) => a - b)
-      : movements;
+      ? acc.movements.slice().sort((a, b) => a - b)
+      : acc.movements;
 
-   // Display movements
+   // Display movements and movements date
    sortMovements.forEach((movement, i) => {
       const type = movement > 0 ? 'deposit' : 'withdrawal';
+
+      const movementDate = new Date(acc.movementsDates[i]);
+      const day = `${movementDate.getDate()}`.padStart(2, 0);
+      const month = `${movementDate.getMonth() + 1}`.padStart(2, 0);
+      const year = movementDate.getFullYear();
+      const displayMovementDate = `${day}/${month}/${year}`;
 
       const html = `
         <div class="movements__row">
             <div class="movements__type movements__type--${type}">${
          i + 1
       } ${type}</div>
-            <div class="movements__value">${movement}€</div>
+            <div class="movements__date">${displayMovementDate}</div>
+            <div class="movements__value">${movement.toFixed(2)}€</div>
         </div>
       `;
 
@@ -148,7 +161,7 @@ const calcDisplayBalance = (acc) => {
       0
    );
 
-   labelBalance.textContent = `${acc.balance}€`;
+   labelBalance.textContent = `${acc.balance.toFixed(2)}€`;
 };
 
 /**
@@ -159,13 +172,13 @@ const calcDisplaySummary = (acc) => {
    const totaldepositAmount = acc.movements
       .filter((mov) => mov > 0)
       .reduce((acc, mov) => acc + mov, 0);
-   labelSumIn.textContent = `${totaldepositAmount}€`;
+   labelSumIn.textContent = `${totaldepositAmount.toFixed(2)}€`;
 
    // Display withdrawals summary
    const totalWithdrawalAmount = acc.movements
       .filter((mov) => mov < 0)
       .reduce((acc, mov) => acc + mov, 0);
-   labelSumOut.textContent = `${Math.abs(totalWithdrawalAmount)}€`;
+   labelSumOut.textContent = `${Math.abs(totalWithdrawalAmount).toFixed(2)}€`;
 
    // Display total interest amount
    const interest = acc.movements
@@ -177,7 +190,7 @@ const calcDisplaySummary = (acc) => {
       .filter((interestAmount) => interestAmount >= 1)
       // calc total interest amount
       .reduce((acc, interestAmount) => acc + interestAmount, 0);
-   labelSumInterest.textContent = `${interest}€`;
+   labelSumInterest.textContent = `${interest.toFixed(2)}€`;
 };
 
 /**
@@ -200,7 +213,7 @@ createUserNames(accounts);
  */
 const updateUI = (curAcc) => {
    // Display movements
-   displayMovements(curAcc.movements);
+   displayMovements(curAcc);
 
    // Display balance
    calcDisplayBalance(curAcc);
@@ -212,7 +225,11 @@ const updateUI = (curAcc) => {
 /**
  * Implementing Login
  */
-let currentAccount;
+
+// FAKE ALWAYS LOGGED IN
+currentAccount = account1;
+updateUI(currentAccount);
+containerApp.style.opacity = 1;
 
 btnLogin.addEventListener('click', (e) => {
    // Prevent login form from submitting
@@ -233,6 +250,15 @@ btnLogin.addEventListener('click', (e) => {
       inputLoginUsername.value = inputLoginPin.value = '';
       inputLoginPin.blur(); // "blur" method removes focus from an element.
       inputLoginUsername.blur();
+
+      // Create current date and time
+      const currentDate = new Date();
+      const day = `${currentDate.getDate()}`.padStart(2, 0);
+      const month = `${currentDate.getMonth() + 1}`.padStart(2, 0);
+      const year = currentDate.getFullYear();
+      const hour = `${currentDate.getHours()}`.padStart(2, 0);
+      const mins = `${currentDate.getMinutes()}`.padStart(2, 0);
+      labelDate.textContent = `${day}/${month}/${year}, ${hour}:${mins}`;
 
       // Update UI
       updateUI(currentAccount);
@@ -262,6 +288,10 @@ btnTransfer.addEventListener('click', (e) => {
       currentAccount.movements.push(-amount);
       receiverAccount.movements.push(amount);
 
+      // Add transfer date
+      currentAccount.movementsDates.push(new Date().toISOString());
+      receiverAccount.movementsDates.push(new Date().toISOString());
+
       // Update UI
       updateUI(currentAccount);
 
@@ -280,7 +310,7 @@ btnTransfer.addEventListener('click', (e) => {
 btnLoan.addEventListener('click', (e) => {
    e.preventDefault();
 
-   const amount = Number(inputLoanAmount.value);
+   const amount = Math.floor(inputLoanAmount.value);
 
    // Any deposit > 10% of requested amount
    if (
@@ -290,6 +320,9 @@ btnLoan.addEventListener('click', (e) => {
       // Add positive movement to current user
       currentAccount.movements.push(amount);
 
+      // Add loan date
+      currentAccount.movementsDates.push(new Date().toISOString());
+
       // Update UI
       updateUI(currentAccount);
 
@@ -298,9 +331,9 @@ btnLoan.addEventListener('click', (e) => {
       inputLoanAmount.blur(); // "blur" method removes focus from an element.
    } else {
       alert(
-         `${
+         `Hey ${
             currentAccount.owner.split(' ')[0]
-         }, requested amount ${amount} is high. Please check!`
+         }, requested amount is out of range. Please check!`
       );
    }
 });
@@ -335,7 +368,6 @@ btnClose.addEventListener('click', (e) => {
 /**
  * User Sorts Movements
  */
-let sorted = false;
 btnSort.addEventListener('click', (e) => {
    e.preventDefault();
 
