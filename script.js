@@ -1,3 +1,4 @@
+/* eslint-disable no-alert */
 /// //////////////////////////////////////////////
 /// //////////////////////////////////////////////
 // IOTA BANK APP
@@ -6,18 +7,18 @@
 // Data
 const account1 = {
    owner: 'Ritik Sharma',
-   movements: [200, 450, -400, 3000, -650, -130, 70, 1300],
+   movements: [200, 455.23, -306.5, 25000, -642.21, -133.9, 79.97, 1300],
    interestRate: 1.2, // %
    pin: 1111,
    movementsDates: [
+      '2019-01-27T09:15:04.904Z',
+      '2019-04-01T10:17:24.185Z',
+      '2019-05-27T17:01:17.194Z',
+      '2019-07-11T23:36:17.929Z',
       '2019-11-18T21:31:17.178Z',
       '2019-12-23T07:42:02.383Z',
-      '2020-01-28T09:15:04.904Z',
-      '2020-04-01T10:17:24.185Z',
-      '2020-05-08T14:11:59.604Z',
-      '2020-05-27T17:01:17.194Z',
-      '2020-07-11T23:36:17.929Z',
-      '2020-07-12T10:51:36.790Z',
+      '2023-01-24T14:11:59.604Z',
+      '2023-01-26T10:51:36.790Z',
    ],
    currency: 'EUR',
    locale: 'pt-PT', // de-DE
@@ -112,6 +113,26 @@ let currentAccount;
 let sorted = false;
 
 /**
+ * @function formatMovementDate to format movement date
+ * @function calcDaysPassed to calculate the date difference
+ */
+const formatMovementDate = (movementDate) => {
+   const calcDaysPassed = (date1, date2) =>
+      Math.round(Math.abs(date2 - date1) / (1000 * 60 * 60 * 24));
+
+   const daysPassed = calcDaysPassed(new Date(), movementDate);
+
+   if (daysPassed === 0) return 'Today';
+   if (daysPassed === 1) return 'Yesterday';
+   if (daysPassed <= 7) return `${daysPassed} days ago`;
+
+   const day = `${movementDate.getDate()}`.padStart(2, 0);
+   const month = `${movementDate.getMonth() + 1}`.padStart(2, 0);
+   const year = movementDate.getFullYear();
+   return `${day}/${month}/${year}`;
+};
+
+/**
  * Display deposit and withdrawal amount to the dashboard.
  * Display movements date.
  */
@@ -130,10 +151,7 @@ const displayMovements = (acc, sort = false) => {
       const type = movement > 0 ? 'deposit' : 'withdrawal';
 
       const movementDate = new Date(acc.movementsDates[i]);
-      const day = `${movementDate.getDate()}`.padStart(2, 0);
-      const month = `${movementDate.getMonth() + 1}`.padStart(2, 0);
-      const year = movementDate.getFullYear();
-      const displayMovementDate = `${day}/${month}/${year}`;
+      const displayMovementDate = formatMovementDate(movementDate);
 
       const html = `
         <div class="movements__row">
@@ -169,13 +187,13 @@ const calcDisplaySummary = (acc) => {
    // Display deposits summary
    const totaldepositAmount = acc.movements
       .filter((mov) => mov > 0)
-      .reduce((acc, mov) => acc + mov, 0);
+      .reduce((accumulator, mov) => accumulator + mov, 0);
    labelSumIn.textContent = `${totaldepositAmount.toFixed(2)}€`;
 
    // Display withdrawals summary
    const totalWithdrawalAmount = acc.movements
       .filter((mov) => mov < 0)
-      .reduce((acc, mov) => acc + mov, 0);
+      .reduce((accumulator, mov) => accumulator + mov, 0);
    labelSumOut.textContent = `${Math.abs(totalWithdrawalAmount).toFixed(2)}€`;
 
    // Display total interest amount
@@ -187,7 +205,7 @@ const calcDisplaySummary = (acc) => {
       // bank's rule: interest amount should be greater than one to calculate in the total interest amount
       .filter((interestAmount) => interestAmount >= 1)
       // calc total interest amount
-      .reduce((acc, interestAmount) => acc + interestAmount, 0);
+      .reduce((accumulator, interestAmount) => accumulator + interestAmount, 0);
    labelSumInterest.textContent = `${interest.toFixed(2)}€`;
 };
 
@@ -245,7 +263,8 @@ btnLogin.addEventListener('click', (e) => {
       containerApp.style.opacity = 1;
 
       // Clear input fields
-      inputLoginUsername.value = inputLoginPin.value = '';
+      inputLoginUsername.value = '';
+      inputLoginPin.value = '';
       inputLoginPin.blur(); // "blur" method removes focus from an element.
       inputLoginUsername.blur();
 
@@ -294,7 +313,8 @@ btnTransfer.addEventListener('click', (e) => {
       updateUI(currentAccount);
 
       // Clear input fields
-      inputTransferAmount.value = inputTransferTo.value = '';
+      inputTransferAmount.value = '';
+      inputTransferTo.value = '';
       inputTransferAmount.blur(); // "blur" method removes focus from an element.
       inputTransferTo.blur();
    } else {
