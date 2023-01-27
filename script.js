@@ -20,8 +20,8 @@ const account1 = {
       '2023-01-24T14:11:59.604Z',
       '2023-01-26T10:51:36.790Z',
    ],
-   currency: 'EUR',
-   locale: 'pt-PT', // de-DE
+   currency: 'USD',
+   locale: 'en-US', // de-DE
 };
 
 const account2 = {
@@ -39,8 +39,8 @@ const account2 = {
       '2020-06-25T18:49:59.371Z',
       '2020-07-26T12:01:20.894Z',
    ],
-   currency: 'USD',
-   locale: 'en-US',
+   currency: 'EUR',
+   locale: 'pt-PT',
 };
 
 const account3 = {
@@ -116,7 +116,7 @@ let sorted = false;
  * @function formatMovementDate to format movement date
  * @function calcDaysPassed to calculate the date difference
  */
-const formatMovementDate = (movementDate) => {
+const formatMovementDate = (movementDate, locale) => {
    const calcDaysPassed = (date1, date2) =>
       Math.round(Math.abs(date2 - date1) / (1000 * 60 * 60 * 24));
 
@@ -126,10 +126,8 @@ const formatMovementDate = (movementDate) => {
    if (daysPassed === 1) return 'Yesterday';
    if (daysPassed <= 7) return `${daysPassed} days ago`;
 
-   const day = `${movementDate.getDate()}`.padStart(2, 0);
-   const month = `${movementDate.getMonth() + 1}`.padStart(2, 0);
-   const year = movementDate.getFullYear();
-   return `${day}/${month}/${year}`;
+   // Date format using Internationalization API
+   return new Intl.DateTimeFormat(locale).format(movementDate);
 };
 
 /**
@@ -151,7 +149,7 @@ const displayMovements = (acc, sort = false) => {
       const type = movement > 0 ? 'deposit' : 'withdrawal';
 
       const movementDate = new Date(acc.movementsDates[i]);
-      const displayMovementDate = formatMovementDate(movementDate);
+      const displayMovementDate = formatMovementDate(movementDate, acc.locale);
 
       const html = `
         <div class="movements__row">
@@ -268,14 +266,20 @@ btnLogin.addEventListener('click', (e) => {
       inputLoginPin.blur(); // "blur" method removes focus from an element.
       inputLoginUsername.blur();
 
-      // Create current date and time
+      // Create current date and time using Internationalization API
       const currentDate = new Date();
-      const day = `${currentDate.getDate()}`.padStart(2, 0);
-      const month = `${currentDate.getMonth() + 1}`.padStart(2, 0);
-      const year = currentDate.getFullYear();
-      const hour = `${currentDate.getHours()}`.padStart(2, 0);
-      const mins = `${currentDate.getMinutes()}`.padStart(2, 0);
-      labelDate.textContent = `${day}/${month}/${year}, ${hour}:${mins}`;
+      const options = {
+         year: 'numeric',
+         month: 'numeric',
+         day: 'numeric',
+         hour: 'numeric',
+         minute: 'numeric',
+      };
+
+      labelDate.textContent = new Intl.DateTimeFormat(
+         currentAccount.locale,
+         options
+      ).format(currentDate);
 
       // Update UI
       updateUI(currentAccount);
