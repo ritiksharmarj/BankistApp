@@ -1,3 +1,4 @@
+/* eslint-disable one-var */
 /* eslint-disable no-alert */
 /// //////////////////////////////////////////////
 /// //////////////////////////////////////////////
@@ -21,7 +22,7 @@ const account1 = {
       '2023-01-26T10:51:36.790Z',
    ],
    currency: 'USD',
-   locale: 'en-US', // de-DE
+   locale: 'en-US', // en-IN
 };
 
 const account2 = {
@@ -88,7 +89,7 @@ const labelBalance = document.querySelector('.balance__value');
 const labelSumIn = document.querySelector('.summary__value--in');
 const labelSumOut = document.querySelector('.summary__value--out');
 const labelSumInterest = document.querySelector('.summary__value--interest');
-// const labelTimer = document.querySelector('.timer');
+const labelTimer = document.querySelector('.timer');
 
 const containerApp = document.querySelector('.app');
 const containerMovements = document.querySelector('.movements');
@@ -109,7 +110,7 @@ const inputClosePin = document.querySelector('.form__input--pin');
 
 /// //////////////////////////////////////////////
 // Global Variables
-let currentAccount;
+let currentAccount, timer;
 let sorted = false;
 
 /**
@@ -131,6 +132,16 @@ const formatMovementDate = (movementDate, locale) => {
 };
 
 /**
+ * @function formatCurrency to format currency using Internationalization API
+ */
+const formatCurrency = (movement, locale, currency) =>
+   new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 2,
+   }).format(movement);
+
+/**
  * Display deposit and withdrawal amount to the dashboard.
  * Display movements date.
  */
@@ -138,7 +149,6 @@ const displayMovements = (acc, sort = false) => {
    // "innerHTML" property replace HTML code with the new one.
    containerMovements.innerHTML = '';
 
-   // FIXME : sort not working
    // Movements sorting conditions
    const sortMovements = sort
       ? acc.movements.slice().sort((a, b) => a - b)
@@ -148,8 +158,16 @@ const displayMovements = (acc, sort = false) => {
    sortMovements.forEach((movement, i) => {
       const type = movement > 0 ? 'deposit' : 'withdrawal';
 
+      // Formatted movement date
       const movementDate = new Date(acc.movementsDates[i]);
       const displayMovementDate = formatMovementDate(movementDate, acc.locale);
+
+      // Formatted movement currency
+      const formattedMovement = formatCurrency(
+         movement,
+         acc.locale,
+         acc.currency
+      );
 
       const html = `
         <div class="movements__row">
@@ -157,7 +175,7 @@ const displayMovements = (acc, sort = false) => {
          i + 1
       } ${type}</div>
             <div class="movements__date">${displayMovementDate}</div>
-            <div class="movements__value">${movement.toFixed(2)}€</div>
+            <div class="movements__value">${formattedMovement}</div>
         </div>
       `;
 
@@ -175,7 +193,11 @@ const calcDisplayBalance = (acc) => {
       0
    );
 
-   labelBalance.textContent = `${acc.balance.toFixed(2)}€`;
+   labelBalance.textContent = formatCurrency(
+      acc.balance,
+      acc.locale,
+      acc.currency
+   );
 };
 
 /**
@@ -183,16 +205,24 @@ const calcDisplayBalance = (acc) => {
  */
 const calcDisplaySummary = (acc) => {
    // Display deposits summary
-   const totaldepositAmount = acc.movements
+   const totalDepositAmount = acc.movements
       .filter((mov) => mov > 0)
       .reduce((accumulator, mov) => accumulator + mov, 0);
-   labelSumIn.textContent = `${totaldepositAmount.toFixed(2)}€`;
+   labelSumIn.textContent = formatCurrency(
+      totalDepositAmount,
+      acc.locale,
+      acc.currency
+   );
 
    // Display withdrawals summary
    const totalWithdrawalAmount = acc.movements
       .filter((mov) => mov < 0)
       .reduce((accumulator, mov) => accumulator + mov, 0);
-   labelSumOut.textContent = `${Math.abs(totalWithdrawalAmount).toFixed(2)}€`;
+   labelSumOut.textContent = formatCurrency(
+      Math.abs(totalWithdrawalAmount),
+      acc.locale,
+      acc.currency
+   );
 
    // Display total interest amount
    const interest = acc.movements
@@ -204,7 +234,11 @@ const calcDisplaySummary = (acc) => {
       .filter((interestAmount) => interestAmount >= 1)
       // calc total interest amount
       .reduce((accumulator, interestAmount) => accumulator + interestAmount, 0);
-   labelSumInterest.textContent = `${interest.toFixed(2)}€`;
+   labelSumInterest.textContent = formatCurrency(
+      interest,
+      acc.locale,
+      acc.currency
+   );
 };
 
 /**
@@ -223,6 +257,37 @@ const createUserNames = (accs) => {
 createUserNames(accounts);
 
 /**
+ * Logout Timer
+ */
+const startLogOutTimer = () => {
+   // Set time to 5 minutes
+   let time = 300;
+
+   const tick = () => {
+      const min = String(Math.trunc(time / 60)).padStart(2, 0);
+      const sec = String(time % 60).padStart(2, 0);
+
+      // In each call, print the remaining time to UI
+      labelTimer.textContent = `${min}:${sec}`;
+
+      // When 0 seconds, stop timer and logout the user
+      if (time === 0) {
+         clearInterval(timer);
+         labelWelcome.textContent = 'Log in to get started';
+         containerApp.style.opacity = 0;
+      }
+
+      time -= 1;
+   };
+
+   // Call the timer every seconds
+   tick();
+   timer = setInterval(tick, 1000);
+
+   return timer;
+};
+
+/**
  * Update UI
  */
 const updateUI = (curAcc) => {
@@ -239,12 +304,6 @@ const updateUI = (curAcc) => {
 /**
  * Implementing Login
  */
-
-// FAKE ALWAYS LOGGED IN
-currentAccount = account1;
-updateUI(currentAccount);
-containerApp.style.opacity = 1;
-
 btnLogin.addEventListener('click', (e) => {
    // Prevent login form from submitting
    e.preventDefault();
@@ -283,6 +342,10 @@ btnLogin.addEventListener('click', (e) => {
 
       // Update UI
       updateUI(currentAccount);
+
+      // Display Logout Timer
+      if (timer) clearInterval(timer);
+      timer = startLogOutTimer();
    } else {
       alert('Wrong username and password entered. Please check again!');
    }
@@ -321,8 +384,12 @@ btnTransfer.addEventListener('click', (e) => {
       inputTransferTo.value = '';
       inputTransferAmount.blur(); // "blur" method removes focus from an element.
       inputTransferTo.blur();
+
+      // Reset Timer
+      clearInterval(timer);
+      timer = startLogOutTimer();
    } else {
-      alert('Incorrect! Please check entered detaild again.');
+      alert('Incorrect! Please check again.');
    }
 });
 
@@ -339,18 +406,24 @@ btnLoan.addEventListener('click', (e) => {
       amount > 0 &&
       currentAccount.movements.some((mov) => mov >= amount * 0.1)
    ) {
-      // Add positive movement to current user
-      currentAccount.movements.push(amount);
+      setTimeout(() => {
+         // Add positive movement to current user
+         currentAccount.movements.push(amount);
 
-      // Add loan date
-      currentAccount.movementsDates.push(new Date().toISOString());
+         // Add loan date
+         currentAccount.movementsDates.push(new Date().toISOString());
 
-      // Update UI
-      updateUI(currentAccount);
+         // Update UI
+         updateUI(currentAccount);
+      }, 3000);
 
       // Clear input fields
       inputLoanAmount.value = '';
       inputLoanAmount.blur(); // "blur" method removes focus from an element.
+
+      // Reset Timer
+      clearInterval(timer);
+      timer = startLogOutTimer();
    } else {
       alert(
          `Hey ${
@@ -393,13 +466,9 @@ btnClose.addEventListener('click', (e) => {
 btnSort.addEventListener('click', (e) => {
    e.preventDefault();
 
-   displayMovements(currentAccount.movements, !sorted);
+   displayMovements(currentAccount, !sorted);
    sorted = !sorted;
 
    // "blur" method removes focus from an element.
    btnSort.blur();
 });
-
-/// //////////////////////////////////////////////
-/// //////////////////////////////////////////////
-// LECTURES
